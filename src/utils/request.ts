@@ -1,36 +1,59 @@
-import axios, { type AxiosRequestConfig, AxiosResponse } from "axios";
-import { getTestICode } from "./getCode";
-import { IResType } from "./types";
+import axios, { type AxiosRequestConfig, AxiosResponse } from 'axios'
+import { getTestICode } from './getCode'
+import { IResType } from './types'
+import { ElMessage } from 'element-plus'
+import { loadingStart, loadingEnd } from '@/utils/loading'
 const service = axios.create({
   baseURL: import.meta.env.VITE_BASE_API,
-  timeout: 10000,
+  timeout: 20000,
   headers: {
-    "Content-Type": "application/json;charset=UTF-8",
-  },
-});
+    'Content-Type': 'application/json;charset=UTF-8'
+  }
+})
 service.interceptors.request.use(
   (config) => {
-    const { icode, time } = getTestICode();
-    config.headers.icode = icode;
-    config.headers.codeType = time;
-    return config;
+    loadingStart()
+    const { icode, time } = getTestICode()
+    config.headers.icode = icode
+    config.headers.codeType = time
+    return config
   },
   (error) => {
-    return Promise.reject(error);
+    loadingEnd()
+    ElMessage.error(error.message)
+    return Promise.reject(error)
   }
-);
+)
 service.interceptors.response.use(
   (response: AxiosResponse) => {
-    return response;
+    const { data } = response
+    if (data.data) {
+      ElMessage({
+        message: data.message,
+        type: 'success',
+        duration: 1000
+      })
+      loadingEnd()
+      return data
+    }
+
+    return ElMessage({
+      message: data.message,
+      type: 'error',
+      duration: 1000
+    })
+    // return response.data
   },
   (error) => {
-    return Promise.reject(error);
+    loadingEnd()
+    ElMessage.error(error.message)
+    return Promise.reject(error)
   }
-);
+)
 const request = <T = any, R = IResType<T>>(
   config: AxiosRequestConfig<T>
 ): Promise<R> => {
-  return service.request({ ...config });
-};
+  return service.request({ ...config })
+}
 
-export default request;
+export default request
